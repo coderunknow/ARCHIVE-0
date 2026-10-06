@@ -66,3 +66,12 @@ Limitations, stated honestly:
 - No PowerPoint or LibreOffice engine was available in this sandbox (apt mirrors and LibreOffice download hosts are blocked; Aspose.Slides requires libgdiplus, which is unavailable), so the deck was NOT rendered by a PowerPoint-compatible engine. Visual verification used a geometry mock render + ISO schema validation + package integrity checks instead.
 - Animation preset *labels* in PowerPoint's Animation Pane may differ slightly from PowerPoint's own defaults (the entrance filter strings and structure follow a PowerPoint-authored reference; presetID/presetSubtype values were chosen to match the same effects).
 - Facts are accurate as published for the 2025 cycle; later cycles (e.g. 2026) differ and were intentionally excluded.
+
+### #6 — 2026-10-06 — CONTRADICTION
+Task premise vs. verified repository state.
+- Task statement says: "You are working on an existing repository that currently contains or is based on `python-pptx`", and asks to transform it into `python-pptx2` with a substantial internal refactor.
+- What the repository actually contains (verified): `README.md` (12 bytes: `# ARCHIVE-0`), `DESIGN_LOG.md` and `presentation.pptx` (both added by entry #4). Full history across all refs is 2 commits / 3 files. There is **no Python code at all**: no modules, no `setup.py`/`pyproject.toml`, no package layout, no tests, no docs, no tooling config.
+- GitHub metadata (verified): `coderunknow/ARCHIVE-0` is **not a fork**, `parent: null`, no description, `diskUsage: 0`; branches are only `main` and `arena/5f5c7ee0-archive-0`; the only PR is #1 (the presentation deck).
+- `python-pptx` exists in this environment only as an installed third-party package in `/tmp/pptxenv` (`python-pptx 1.0.2`), used as a build dependency for entry #4. Upstream `scanny/python-pptx` is a different repository (default branch `master`).
+- Conclusion: there is nothing in this repository to rename or refactor, and the repository contains no evidence that can answer the refactor's architectural questions (base version/commit, history policy, supported Python versions, compatibility promise, module boundaries to change).
+- Action taken: stopped before making any architectural decision and asked the user (per the task's rule 1 and the "stop and ask" conditions). No files other than this log entry were touched.
