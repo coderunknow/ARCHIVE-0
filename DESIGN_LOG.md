@@ -75,3 +75,35 @@ Task premise vs. verified repository state.
 - `python-pptx` exists in this environment only as an installed third-party package in `/tmp/pptxenv` (`python-pptx 1.0.2`), used as a build dependency for entry #4. Upstream `scanny/python-pptx` is a different repository (default branch `master`).
 - Conclusion: there is nothing in this repository to rename or refactor, and the repository contains no evidence that can answer the refactor's architectural questions (base version/commit, history policy, supported Python versions, compatibility promise, module boundaries to change).
 - Action taken: stopped before making any architectural decision and asked the user (per the task's rule 1 and the "stop and ask" conditions). No files other than this log entry were touched.
+
+### #7 — 2026-10-06 — INTENT
+User's answer to the contradiction raised in #6 (verbatim, custom response):
+"The project currently uses the existing `python-pptx` library.  Migrate the project to the existing `python-pptx2` library and refactor the project's PowerPoint-related code to use it cleanly.  Use the existing `python-pptx2` package rather than creating your own version of the library. Refactor the current code as needed to work naturally with `python-pptx2`, while preserving the project's existing behavior where practical.  Do not add unrelated changes or make assumptions about requirements that are not clear from the repository.  Add or update tests where appropriate, run the relevant checks, perform a final verification, and update the pull request with the actual results before considering the work complete."
+- Also chosen: reuse PR #1 for this work (no new PR).
+- Consequence: the project's own package is NOT called python-pptx2 — `python-pptx2` is the library we depend on (PyPI `python-pptx2` 3.2.0, import name `pptx2`). This project's package is `archive0_deck` (distribution `archive0-deck`).
+
+### #8 — 2026-10-06 — DONE
+Migrated the project's PowerPoint code (the deck builder from #4, which had never been committed) into a structured package that uses `python-pptx2` 3.2.0, and regenerated the artifact.
+- New package `src/archive0_deck/`: `theme` (palette/fonts/geometry), `typography` (single measurement implementation), `animation` (timing + transition XML), `layout` (`Deck`/`Slide` primitives), `sections/` (6 content modules, 18 slides), `builder`, `preview`, `validation`, `__main__` CLI (`build` / `verify`).
+- Structural fixes: the 815-line top-level script became focused modules; the global mutable `manifest` and the file-based `manifest.json` contract replaced by `Deck.manifest`; `Slide._text` private API renamed to `text`; `theme._font` leak replaced by `typography.text_width_in`/`render_font`; duplicated wrap/font code in the preview renderer removed (it now shares `typography`); page numbers derived from insertion order instead of hard-coded; dead `fmt_pt`, unused `Emu` import and unused `FLOAT_UP` preset removed; 85 ignored `delay=`/`dur=` arguments dropped from sections and from the primitive signatures (the timing builder derives stagger from reveal order).
+- pptx2 specifics: `shadow.inherit = False` (deprecated in pptx2) replaced by `shadow.clear()`; validation made Markup-Compatibility aware because pptx2 writes `mc:Ignorable` on every slide part (plain XSD validation reports those parts as invalid).
+- Added `pyproject.toml` (package metadata, `python-pptx2>=3.2.0` dependency, pytest config with `filterwarnings = error::DeprecationWarning`), `.gitignore`, tests and a README describing the layout and commands.
+
+### #9 — 2026-10-06 — DONE
+Verification actually performed (all commands run after the refactor):
+- `pip install -e .` succeeds; `python -m archive0_deck build` writes 18 slides.
+- Content equivalence vs the artifact committed in #4 (built with python-pptx 1.0.2): 0 differences across all 18 slides — same shapes, geometry, text, font sizes/bold/colours, notes.
+- Animation equivalence vs that same artifact: identical per-slide delay sequences and filters, 262 entrance effects in both, transitions on all 18 slides.
+- Schema validation: 19/19 parts valid (18 slides + presentation.xml) against the ISO/IEC 29500-4 schemas, with MC attributes stripped (18 stripped).
+- Structural checks: zip integrity OK, no broken relationships, no uncovered parts, no duplicate time-node ids, no dangling animation targets (111 parts).
+- `python -m pytest`: 33 passed (content contract incl. drift test against the committed artifact, animation, typography, validation, preview).
+- `pyflakes src/archive0_deck tests`: clean.
+- Preview render of the regenerated deck: 18 PNGs + contact sheet, 0 overflow flags, visually inspected and identical to the #4 deck.
+- `presentation.pptx` regenerated with python-pptx2 and committed (117,849 bytes, was 116,276 bytes built with python-pptx 1.0.2).
+
+### #10 — 2026-10-06 — NOTE
+Limitations and deliberate non-changes:
+- Still no PowerPoint-compatible renderer in this sandbox (apt mirrors and LibreOffice download hosts blocked), so the deck is not engine-rendered; verification uses the geometry preview plus schema/package checks and content/timing comparison against the previously committed artifact.
+- Deliberately unchanged: slide content, wording, figures, geometry, colours, fonts, animation timings, the placeholder text (name/class/date, joke frame) and the append-only history in this log. The section modules were generated from the #4 code and every string literal was checked to be preserved (the generator asserted literal preservation; the only two dropped literals are the old `s.title = "Title"` / `s.title = "Cảm ơn"` manifest labels, replaced by the `label=` argument).
+- Citation text was left as content rather than being refactored into a citation registry: the notes and the sources slide use different wording per entry, so unifying them would have changed the user-visible text.
+- `preview.py` remains a geometry mock, not a renderer; the ISO schemas are not vendored into the repository (validation uses `ARCHIVE0_OOXML_XSD` when provided).

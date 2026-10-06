@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "archive0-deck"
+version = "0.1.0"
+description = "The ARCHIVE-0 presentation, generated with python-pptx2."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "python-pptx2>=3.2.0",
+    "Pillow>=10.3.0",
+    "lxml>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.urls]
+Repository = "https://github.com/coderunknow/ARCHIVE-0"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error::DeprecationWarning"]
